@@ -1,14 +1,12 @@
 import { useState, useCallback } from 'react';
-import { StrategicMethod } from '../lib/types'; // Importación centralizada
+import { StrategicMethod, ContextOption } from '../lib/types';
 import { apiClient } from '../lib/apiClient';
-
-// La definición local de StrategicMethod ha sido eliminada.
 
 export const useOracle = (initialMethods: StrategicMethod[]) => {
   const [selectedMethod, setSelectedMethod] = useState<StrategicMethod | null>(
     initialMethods.length > 0 ? initialMethods[0] : null
   );
-  // El estado de las preguntas generadas sigue siendo string[], ya que es lo que devuelve la API.
+  const [selectedContext, setSelectedContext] = useState<ContextOption>('Decisión laboral');
   const [generatedQuestions, setGeneratedQuestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +22,6 @@ export const useOracle = (initialMethods: StrategicMethod[]) => {
     setGeneratedQuestions([]);
 
     try {
-      // La API devuelve un array de strings, lo cual es correcto.
       const data = await apiClient.post<{ questions: string[] }>('/api/generate', {
         method: selectedMethod.name,
       });
@@ -39,6 +36,8 @@ export const useOracle = (initialMethods: StrategicMethod[]) => {
   return {
     selectedMethod,
     setSelectedMethod,
+    selectedContext,
+    setSelectedContext,
     generatedQuestions,
     isLoading,
     error,

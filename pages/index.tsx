@@ -3,7 +3,8 @@ import Head from 'next/head';
 import { QUESTION_BANK } from '../lib/questionBank';
 import { useOracle } from '../hooks/useOracle';
 import { Header } from '../components/layout/Header';
-import { MethodSelector } from '../components/forms/MethodSelector'; // Importación corregida
+import { MethodSelector } from '../components/forms/MethodSelector';
+import { ContextSelector } from '../components/forms/ContextSelector';
 import { QuestionsPanel } from '../components/oracle/QuestionsPanel';
 import { Footer } from '../components/layout/Footer';
 import { StrategicMethod } from '../lib/types';
@@ -16,6 +17,8 @@ const Home: NextPage<HomeProps> = ({ methods }) => {
   const {
     selectedMethod,
     setSelectedMethod,
+    selectedContext,
+    setSelectedContext,
     generatedQuestions,
     isLoading,
     error,
@@ -37,15 +40,21 @@ const Home: NextPage<HomeProps> = ({ methods }) => {
 
       <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
         <p className="text-center text-lg md:text-xl text-gray-400 mb-8 max-w-3xl">
-          Selecciona un modelo estratégico y presiona &quot;Generar&quot; para que la IA cree 5 nuevas preguntas poderosas para tu situación específica.
+          Selecciona un modelo estratégico y contexto, luego presiona &quot;Generar&quot; para que la IA cree 5 nuevas preguntas poderosas.
         </p>
 
         {methods.length > 0 && selectedMethod && (
-          <MethodSelector
-            methods={methods}
-            selectedMethod={selectedMethod}
-            setSelectedMethod={setSelectedMethod}
-          />
+          <div className="w-full max-w-md space-y-6 mb-8">
+            <MethodSelector
+              methods={methods}
+              selectedMethod={selectedMethod}
+              setSelectedMethod={setSelectedMethod}
+            />
+            <ContextSelector
+              value={selectedContext}
+              onChange={setSelectedContext}
+            />
+          </div>
         )}
 
         <button
@@ -58,7 +67,11 @@ const Home: NextPage<HomeProps> = ({ methods }) => {
 
         {error && <p className="text-red-500 mt-4 text-center">Error: {error}</p>}
 
-        <QuestionsPanel questions={generatedQuestions} />
+        <QuestionsPanel 
+          questions={generatedQuestions} 
+          method={selectedMethod?.name}
+          context={selectedContext}
+        />
       </main>
 
       <Footer />
