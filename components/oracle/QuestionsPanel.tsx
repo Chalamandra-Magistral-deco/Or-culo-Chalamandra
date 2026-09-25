@@ -3,9 +3,9 @@ import type { ThinkingMethod, ContextOption } from '@/lib/types';
 
 interface QuestionsPanelProps {
   questions: string[];
-  source: 'gemini' | 'fallback';
-  method: ThinkingMethod | '';
-  context: ContextOption | '';
+  source?: 'gemini' | 'fallback';
+  method?: ThinkingMethod | '';
+  context?: ContextOption | '';
 }
 
 // El tipo para el estado de guardado de cada pregunta
@@ -29,7 +29,7 @@ const BookmarkIcon = ({ status }: { status: SaveStatus }) => (
 );
 
 export function QuestionsPanel(props: QuestionsPanelProps) {
-  const { questions, source, method, context } = props;
+  const { questions, source = 'gemini', method = '', context = '' } = props;
   // Usamos un Map para un estado más rico por pregunta
   const [questionStatus, setQuestionStatus] = useState<Map<string, SaveStatus>>(new Map());
 
