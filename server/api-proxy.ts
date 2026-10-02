@@ -16,7 +16,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
-const ALLOWED_MODEL = 'gemini-2.0-flash';
+const ALLOWED_MODEL = 'gemini-3.8-flash';
 const MAX_BODY_BYTES = 8 * 1024; // 8 KB
 const MAX_SITUATION_LENGTH = 1000;
 

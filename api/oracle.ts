@@ -6,7 +6,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
-const ALLOWED_MODEL = 'gemini-2.0-flash';
+const ALLOWED_MODEL = 'gemini-3.8-flash';
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_SITUATION_LENGTH = 1000;
 
