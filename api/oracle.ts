@@ -1,17 +1,9 @@
 /**
  * Vercel Function — /api/oracle
- *
- * Adaptación de server/api-proxy.ts para producción.
- * Vercel no ejecuta plugins Vite en build, así que el endpoint
- * vive aquí como serverless function.
- *
- * Seguridad:
- *  - API key leída solo server-side (process.env.GEMINI_API_KEY)
- *  - Prompt construido y sanitizado en servidor
- *  - Rate limiting in-memory (best-effort)
- *  - Body máx 8 KB
- *  - Solo acepta method/context de allow-list
+ * Runtime: Node.js (default de Vercel)
  */
+
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
 const ALLOWED_MODEL = 'gemini-2.0-flash';
@@ -26,7 +18,6 @@ const ALLOWED_METHODS = new Set([
 
 const ALLOWED_CONTEXTS = new Set(['La Chola', 'La Fresa', 'La Malandra']);
 
-// Rate limiting in-memory (best-effort)
 const RATE_WINDOW_MS = 5 * 60 * 1000;
 const RATE_MAX = 20;
 const rateCounts = new Map<string, { count: number; resetAt: number }>();
@@ -72,58 +63,41 @@ Responde exclusivamente en JSON válido. Sin explicaciones extra.
 `.trim();
 };
 
-const jsonResponse = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // IP-based rate limiting
   const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    req.headers.get('x-real-ip') ??
-    'unknown';
+    (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
+    (req.socket?.remoteAddress ?? 'unknown');
 
   if (isRateLimited(ip)) {
-    return jsonResponse({ error: 'Demasiadas consultas. Espera 5 minutos.' }, 429);
+    return res.status(429).json({ error: 'Demasiadas consultas. Espera 5 minutos.' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY ?? '';
   if (!apiKey) {
-    return jsonResponse({ error: 'API key not configured on server' }, 500);
+    return res.status(500).json({ error: 'API key not configured on server' });
   }
 
-  // Leer body con límite de tamaño
-  const rawBody = await req.text();
-  if (rawBody.length > MAX_BODY_BYTES) {
-    return jsonResponse({ error: 'Request too large' }, 413);
-  }
+  // Body (Vercel parsea JSON automáticamente cuando Content-Type es application/json)
+  const parsed = req.body as { method?: unknown; context?: unknown; situation?: unknown };
 
-  let parsed: { method?: unknown; context?: unknown; situation?: unknown };
-  try {
-    parsed = JSON.parse(rawBody);
-  } catch {
-    return jsonResponse({ error: 'Invalid JSON' }, 400);
+  if (typeof parsed?.method !== 'string' || !ALLOWED_METHODS.has(parsed.method)) {
+    return res.status(400).json({ error: 'Método no válido' });
   }
-
-  // Validación de dominio
-  if (typeof parsed.method !== 'string' || !ALLOWED_METHODS.has(parsed.method)) {
-    return jsonResponse({ error: 'Método no válido' }, 400);
+  if (typeof parsed?.context !== 'string' || !ALLOWED_CONTEXTS.has(parsed.context)) {
+    return res.status(400).json({ error: 'Personaje no válido' });
   }
-  if (typeof parsed.context !== 'string' || !ALLOWED_CONTEXTS.has(parsed.context)) {
-    return jsonResponse({ error: 'Personaje no válido' }, 400);
+  if (typeof parsed?.situation !== 'string') {
+    return res.status(400).json({ error: 'Situación inválida' });
   }
-  if (typeof parsed.situation !== 'string') {
-    return jsonResponse({ error: 'Situación inválida' }, 400);
+  if (parsed.situation.length > MAX_BODY_BYTES) {
+    return res.status(413).json({ error: 'Request too large' });
   }
 
   const prompt = buildPrompt(parsed.method, parsed.context, parsed.situation);
-
   const geminiUrl = `${GEMINI_BASE}/v1beta/models/${ALLOWED_MODEL}:generateContent?key=${apiKey}`;
 
   try {
@@ -142,14 +116,13 @@ export default async function handler(req: Request): Promise<Response> {
     if (!upstream.ok) {
       const errText = await upstream.text();
       console.error('[oracle] Gemini error:', upstream.status, errText.slice(0, 300));
-      return jsonResponse({ error: `Gemini respondió ${upstream.status}` }, 502);
+      return res.status(502).json({ error: `Gemini respondió ${upstream.status}` });
     }
 
     const data = await upstream.json();
-    return jsonResponse(data);
+    return res.status(200).json(data);
   } catch (err) {
     console.error('[oracle] Fetch error:', err);
-    return jsonResponse({ error: 'Fallo al contactar Gemini' }, 502);
+    return res.status(502).json({ error: 'Fallo al contactar Gemini' });
   }
 }
-
