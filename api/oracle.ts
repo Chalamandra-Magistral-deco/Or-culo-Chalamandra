@@ -6,7 +6,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
-const ALLOWED_MODEL = 'gemini-3.8-flash';
+// Modelos en orden de preferencia — se intentan en cascada
+const MODEL_FALLBACKS = [
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
+];
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_SITUATION_LENGTH = 1000;
 
@@ -98,31 +104,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const prompt = buildPrompt(parsed.method, parsed.context, parsed.situation);
-  const geminiUrl = `${GEMINI_BASE}/v1beta/models/${ALLOWED_MODEL}:generateContent?key=${apiKey}`;
 
-  try {
-    const upstream = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.9,
-        },
-      }),
-    });
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.9,
+    },
+  });
 
-    if (!upstream.ok) {
-      const errText = await upstream.text();
-      console.error('[oracle] Gemini error:', upstream.status, errText.slice(0, 300));
-      return res.status(502).json({ error: `Gemini respondió ${upstream.status}` });
+  let lastError: { status: number; detail: string } = { status: 0, detail: '' };
+
+  for (const model of MODEL_FALLBACKS) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const url = `${GEMINI_BASE}/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      try {
+        const upstream = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+
+        if (upstream.ok) {
+          const data = await upstream.json();
+          console.log(`[oracle] OK con ${model} (intento ${attempt})`);
+          return res.status(200).json(data);
+        }
+
+        const errText = await upstream.text();
+        lastError = { status: upstream.status, detail: errText.slice(0, 300) };
+        console.error(`[oracle] ${model} → ${upstream.status} (intento ${attempt}): ${errText.slice(0, 150)}`);
+
+        // 503/429 → reintentar con backoff
+        if (upstream.status === 503 || upstream.status === 429) {
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 800 * attempt));
+            continue;
+          }
+        }
+
+        // 404/403 → no reintentar, pasar al siguiente modelo directamente
+        break;
+      } catch (err) {
+        console.error(`[oracle] ${model} fetch error (intento ${attempt}):`, err);
+        lastError = { status: 0, detail: String(err) };
+      }
     }
-
-    const data = await upstream.json();
-    return res.status(200).json(data);
-  } catch (err) {
-    console.error('[oracle] Fetch error:', err);
-    return res.status(502).json({ error: 'Fallo al contactar Gemini' });
   }
+
+  return res.status(502).json({
+    error: `Gemini respondió ${lastError.status}`,
+    detail: lastError.detail.slice(0, 150),
+  });
 }
