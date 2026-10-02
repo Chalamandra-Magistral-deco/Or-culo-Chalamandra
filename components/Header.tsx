@@ -8,7 +8,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center space-x-2">
           <Sparkles className="text-chala-magenta w-6 h-6 animate-pulse-slow" />
           <h1 className="text-xl font-black tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-chala-magenta via-white to-chala-gold">
-            Oráculo Chalamandra
+            El Oráculo de Chala
           </h1>
         </div>
         <div className="text-xs font-mono text-chala-green hidden sm:block">

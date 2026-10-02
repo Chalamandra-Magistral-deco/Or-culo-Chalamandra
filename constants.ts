@@ -1,6 +1,6 @@
 import { MethodType, ContextType, OracleData } from "./types";
 
-export const APP_NAME    = "Oráculo Chalamandra";
+export const APP_NAME    = "El Oráculo de Chala";
 export const APP_TAGLINE = "Decodifica tu caos en 90 segundos.";
 
 /**
