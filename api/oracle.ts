@@ -8,9 +8,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
 // Modelos en orden de preferencia — se intentan en cascada
 const MODEL_FALLBACKS = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
   'gemini-flash-latest',
 ];
 const MAX_BODY_BYTES = 8 * 1024;
