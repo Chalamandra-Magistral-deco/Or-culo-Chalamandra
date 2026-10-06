@@ -114,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
   });
 
-  let lastError: { status: number; detail: string } = { status: 0, detail: '' };
+  const errors: Array<{ model: string; attempt: number; status: number; detail: string }> = [];
 
   for (const model of MODEL_FALLBACKS) {
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -134,28 +134,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const errText = await upstream.text();
-        lastError = { status: upstream.status, detail: errText.slice(0, 300) };
-        console.error(`[oracle] ${model} → ${upstream.status} (intento ${attempt}): ${errText.slice(0, 150)}`);
+        const detail = errText.slice(0, 300);
 
-        // 503/429 → reintentar con backoff
+        errors.push({
+          model,
+          attempt,
+          status: upstream.status,
+          detail,
+        });
+
+        console.error(
+          `[oracle] ${model} → ${upstream.status} (intento ${attempt}): ${errText.slice(0, 150)}`
+        );
+
+        // 503/429 → reintentar con backoff y después pasar al siguiente modelo
         if (upstream.status === 503 || upstream.status === 429) {
           if (attempt < 3) {
             await new Promise(r => setTimeout(r, 800 * attempt));
             continue;
           }
+          break;
         }
 
-        // 404/403 → no reintentar, pasar al siguiente modelo directamente
+        // 404/403 y demás errores → pasar al siguiente modelo
         break;
       } catch (err) {
-        console.error(`[oracle] ${model} fetch error (intento ${attempt}):`, err);
-        lastError = { status: 0, detail: String(err) };
+        const detail = String(err);
+
+        errors.push({
+          model,
+          attempt,
+          status: 0,
+          detail,
+        });
+
+        console.error(
+          `[oracle] ${model} fetch error (intento ${attempt}):`,
+          err
+        );
+
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 800 * attempt));
+          continue;
+        }
       }
     }
   }
 
-  return res.status(502).json({
-    error: `Gemini respondió ${lastError.status}`,
-    detail: lastError.detail.slice(0, 150),
+  console.error(
+    '[oracle] FALLBACK SUMMARY:',
+    JSON.stringify(
+      errors.map(({ model, attempt, status }) => ({
+        model,
+        attempt,
+        status,
+      }))
+    )
+  );
+
+  const lastStatus = errors.at(-1)?.status || 502;
+
+  return res.status(lastStatus === 429 || lastStatus === 503 ? 503 : 502).json({
+    error: 'El servicio de IA no está disponible temporalmente.',
   });
 }
