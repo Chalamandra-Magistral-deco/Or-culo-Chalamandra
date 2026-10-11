@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://oraculo.chalamandramagistral.com/sitemap.xml
