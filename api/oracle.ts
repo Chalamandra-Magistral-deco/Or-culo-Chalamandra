@@ -14,7 +14,6 @@ const MODEL_FALLBACKS = [
   'gemini-2.0-flash',
   'gemini-flash-latest',
 ];
-const MAX_BODY_BYTES = 8 * 1024;
 const MAX_SITUATION_LENGTH = 1000;
 
 const ALLOWED_METHODS = new Set([
@@ -100,8 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (typeof parsed?.situation !== 'string') {
     return res.status(400).json({ error: 'Situación inválida' });
   }
-  if (parsed.situation.length > MAX_BODY_BYTES) {
-    return res.status(413).json({ error: 'Request too large' });
+  if (parsed.situation.length > MAX_SITUATION_LENGTH) {
+    return res.status(413).json({
+      error: `La situación no debe superar ${MAX_SITUATION_LENGTH} caracteres.`,
+    });
   }
 
   const prompt = buildPrompt(parsed.method, parsed.context, parsed.situation);
@@ -128,7 +129,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         if (upstream.ok) {
-          const data = await upstream.json();
+          const data = await upstream.json() as {
+            candidates?: Array<{
+              content?: { parts?: Array<Record<string, unknown>> };
+            }>;
+            [key: string]: unknown;
+          };
+
+          if (Array.isArray(data.candidates)) {
+            for (const candidate of data.candidates) {
+              const parts = candidate?.content?.parts;
+              if (!Array.isArray(parts)) continue;
+
+              for (const part of parts) {
+                if (part && typeof part === 'object') {
+                  delete part['thoughtSignature'];
+                }
+              }
+            }
+          }
+
           console.log(`[oracle] OK con ${model} (intento ${attempt})`);
           return res.status(200).json(data);
         }
