@@ -149,6 +149,13 @@ const handleOracleRequest = async (req: IncomingMessage, res: ServerResponse): P
     res.end(JSON.stringify({ error: 'Situación inválida' }));
     return;
   }
+  if (parsed.situation.length > MAX_SITUATION_LENGTH) {
+    res.writeHead(413, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: `La situación no debe superar ${MAX_SITUATION_LENGTH} caracteres.`,
+    }));
+    return;
+  }
 
   // Build prompt server-side — client cannot inject arbitrary text at the Gemini level
   const prompt = buildPrompt(parsed.method, parsed.context, parsed.situation);
@@ -166,7 +173,36 @@ const handleOracleRequest = async (req: IncomingMessage, res: ServerResponse): P
       body: JSON.stringify(geminiPayload),
     });
 
-    const responseText = await upstream.text();
+    let responseText = await upstream.text();
+
+    if (upstream.ok) {
+      try {
+        const data = JSON.parse(responseText) as {
+          candidates?: Array<{
+            content?: { parts?: Array<Record<string, unknown>> };
+          }>;
+          [key: string]: unknown;
+        };
+
+        if (Array.isArray(data.candidates)) {
+          for (const candidate of data.candidates) {
+            const parts = candidate?.content?.parts;
+            if (!Array.isArray(parts)) continue;
+
+            for (const part of parts) {
+              if (part && typeof part === 'object') {
+                delete part['thoughtSignature'];
+              }
+            }
+          }
+        }
+
+        responseText = JSON.stringify(data);
+      } catch {
+        // Si la respuesta exitosa no es JSON válido, conservar el cuerpo original.
+      }
+    }
+
     res.writeHead(upstream.status, { 'Content-Type': 'application/json' });
     res.end(responseText);
   } catch (err) {
