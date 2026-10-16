@@ -9,6 +9,17 @@ export const Footer: React.FC = () => {
       <p className="text-gray-700 text-[10px] mt-1 uppercase tracking-widest">
         SRAP Methodology: Resilience & Strategy
       </p>
+      <p className="mt-4 text-[10px] text-gray-600">
+        ¿Quieres ir más profundo?{' '}
+        <a
+          href="https://interactive.chalamandramagistral.com/?utm_source=oraculo&utm_medium=footer&utm_campaign=ecosystem"
+          className="text-chala-gold hover:text-yellow-400 underline underline-offset-2 transition-colors"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Explorar el Sistema Completo →
+        </a>
+      </p>
     </footer>
   );
 };
