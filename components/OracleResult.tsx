@@ -98,6 +98,61 @@ const ErrorScreen: React.FC<{ message: string; onRetry: () => void; onReset: () 
   </div>
 );
 
+
+// ─── Subcomponente: CTA de monetización ───────────────────────────────────────
+const UpgradeCTA: React.FC<{ method: string; context: string }> = ({ method, context }) => {
+  const STRIPE_URL = 'https://buy.stripe.com/cNi8wP0DF8ds2Pu6uCgfu01';
+  const clientRef = `oraculo-${method}-${context}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 60);
+  const href = `${STRIPE_URL}?client_reference_id=${encodeURIComponent(clientRef)}`;
+
+  const handleClick = () => {
+    const w = window as unknown as { dataLayer?: Array<Record<string, unknown>> };
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push({
+      event: 'oraculo_cta_click',
+      cta_location: 'oracle_result',
+      method,
+      context,
+      source_subdomain: 'oraculo',
+      value: 27,
+      currency: 'USD',
+    });
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border-2 border-chala-gold bg-gradient-to-br from-chala-darkgray to-black p-8 text-center my-8">
+      <div className="absolute inset-0 bg-chala-gold/5 blur-3xl pointer-events-none" aria-hidden="true" />
+      <div className="relative z-10 space-y-4">
+        <p className="text-chala-gold text-xs font-black uppercase tracking-[0.3em]">
+          Análisis Completo
+        </p>
+        <h3 className="text-2xl md:text-3xl font-black text-white leading-tight">
+          ¿Quieres tu Mapa SRAP con acompañamiento?
+        </h3>
+        <p className="text-gray-300 max-w-lg mx-auto">
+          Sesión 1:1 de 90 minutos. Diagnosticamos tu arquetipo, calibramos tu estrategia y trazamos el plan de acción.
+        </p>
+        <div className="flex items-center justify-center gap-3 py-2">
+          <span className="text-4xl font-black text-white">$27</span>
+          <span className="text-sm text-gray-400">USD</span>
+        </div>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleClick}
+          className="inline-block w-full md:w-auto bg-chala-gold hover:bg-yellow-400 text-black font-black px-8 py-4 rounded-xl transition-all hover:scale-[1.02] shadow-[0_0_30px_rgba(255,179,0,0.25)]"
+        >
+          RESERVAR SESIÓN →
+        </a>
+        <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+          Pago seguro con Stripe · Acceso inmediato
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // ─── Componente principal ──────────────────────────────────────────────────────
 export const OracleResult: React.FC<OracleResultProps> = ({ data, onReset }) => {
   const { method, context, situation, useAI } = data;
@@ -222,6 +277,9 @@ export const OracleResult: React.FC<OracleResultProps> = ({ data, onReset }) => 
           Respira profundo (SRAP). Lee en voz alta. Ejecuta la primera acción en 72 horas.
         </p>
       </div>
+
+      {/* CTA de monetización */}
+      <UpgradeCTA method={method} context={context} />
 
       {/* Acciones de exportación */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
