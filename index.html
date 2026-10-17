@@ -1,7 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
+  <meta charset="UTF-8" />
+  <!-- Consent Mode v2 baseline: deny storage before GTM or ad tags -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){window.dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      'ad_storage': 'denied',
+      'analytics_storage': 'denied',
+      'ad_user_data': 'denied',
+      'ad_personalization': 'denied',
+      'wait_for_update': 500
+    });
+  </script>
+  <link rel="canonical" href="https://oraculo.chalamandramagistral.com/" />
+
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0B0B0E" />
 
@@ -9,7 +24,7 @@
     <title>Oráculo Chalamandra | Framework SRAP para decidir en el caos</title>
     <meta name="description" content="Herramienta gratuita de reingeniería cognitiva. Aplica métodos como 5 Porqués, OODA Loop o Disney a cualquier problema. Mapas SRAP accionables en 60 segundos." />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <link rel="canonical" href="https://oraculo.chalamandramagistral.com/" />
+    
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
