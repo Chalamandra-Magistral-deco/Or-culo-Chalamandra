@@ -223,6 +223,30 @@ export const OracleResult: React.FC<OracleResultProps> = ({ data, onReset }) => 
         </p>
       </div>
 
+
+      {/* PUENTE DE CONVERSIÓN HACIA INTERACTIVE */}
+      <div className="mt-12 p-8 bg-gradient-to-r from-chala-darkgray to-black border-2 border-chala-gold rounded-xl text-center space-y-4">
+        <h3 className="text-2xl font-black text-white uppercase tracking-tighter">
+          ¿Quieres ir más profundo?
+        </h3>
+        <p className="text-gray-400">
+          Este es tu Mapa SRAP inicial. El siguiente paso es descubrir tu Arquetipo Cognitivo y desbloquear tus 8 Hacks Magistrales en el Sistema Operativo del 1%.
+        </p>
+        <a 
+          href="https://interactive.chalamandramagistral.com/?utm_source=oraculo&utm_medium=result_cta&utm_campaign=funnel_bridge" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-block mt-4 bg-chala-gold hover:bg-yellow-400 text-black font-black px-8 py-4 rounded-xl transition-all hover:scale-[1.02] shadow-[0_0_30px_rgba(255,179,0,0.25)]"
+          onClick={(e) => {
+            const w = window as any;
+            w.dataLayer = w.dataLayer || [];
+            w.dataLayer.push({ event: 'bridge_click', destination: 'interactive', source: 'oraculo' });
+          }}
+        >
+          DESCUBRIR MI ARQUETIPO →
+        </a>
+      </div>
+
       {/* Acciones de exportación */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Button
